@@ -251,21 +251,16 @@ function pickLearn(modIdx){
   if(modIdx === -1) pool = WORDS.filter(w => w.pr === 1);
   else pool = WORDS.filter(w => w.mod === modIdx);
   if(!pool.length) return [];
+  // ONLY truly new words (never studied)
   let available = pool.filter(w => {
     let ws = st.wd[w.e.toLowerCase()];
-    return !ws || !isMastered(ws);
+    return !ws || !ws.t;
   });
-  available.sort((a,b) => {
-    let wa = st.wd[a.e.toLowerCase()] || {};
-    let wb = st.wd[b.e.toLowerCase()] || {};
-    let sa = wa.stg || 0;
-    let sb = wb.stg || 0;
-    if(sa !== sb) return sa - sb;
-    let aNew = !wa.t ? 1 : 0;
-    let bNew = !wb.t ? 1 : 0;
-    if(aNew !== bNew) return bNew - aNew;
-    return (wa.t || 0) - (wb.t || 0);
-  });
+  // Randomize to avoid fixed order
+  for(let i = available.length-1; i>0; i--){
+    let j = Math.floor(Math.random()*(i+1));
+    [available[i], available[j]] = [available[j], available[i]];
+  }
   return available.slice(0, WPS);
 }
 
