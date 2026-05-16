@@ -292,38 +292,7 @@ function pickReview(modIdx){
   return due.slice(0, WPS);
 }
 
-function pickWords
-  let pool;
-  if(modIdx === -1) pool = WORDS.filter(w => w.pr === 1);
-  else pool = WORDS.filter(w => w.mod === modIdx);
-  if(!pool.length) return [];
 
-  let now = Date.now();
-  let scored = pool.map(w => {
-    let ws = st.wd[w.e.toLowerCase()] || {s:0,p:0,r:0,l:null,t:0,stg:0,wg:0};
-    let due = ws.t && isDue(ws) && !isMastered(ws);
-    let score = 0;
-    if(due){
-      // Stage 0 (wrong) = highest priority, then lower stages
-      let stg = ws.stg || 0;
-      let overdue = ws.t ? (now - (ws.t + EB[stg] || 0)) : 0;
-      score = 10000 - stg*1000 + Math.min(overdue/1000, 999);
-    } else if(!ws.t || ws.stg === 0){
-      // Never studied or stage 0 reset: second priority
-      score = 5000 + (ws.wg || 0)*100;
-    } else if(!isMastered(ws)){
-      // In progress but not due
-      score = 2000 - (ws.stg || 0)*100;
-    } else {
-      // Mastered
-      score = 0;
-    }
-    return {w, score, due};
-  });
-
-  scored.sort((a,b) => b.score - a.score);
-  return scored.slice(0, WPS).map(x => x.w);
-}
 
 // ── Audio ────────────────────────────────────────────────
 let voiceReady = false;
@@ -475,20 +444,7 @@ function startReview(modIdx){
   flashShow();
 }
 
-function startFlash
-  cMod = modIdx; cMode = 'flash';
-  sess = pickWords(modIdx);
-  idx = 0; sessHist = [];
-  if(!sess.length){
-    document.getElementById('dm').textContent = '🎉 太棒了！';
-    document.getElementById('ds').textContent = '这个模块没有需要复习的词了！';
-    show('done'); return;
-  }
-  document.getElementById('modeTag').textContent = '刷词';
-  document.getElementById('modeTag').className = 'mode-tag flash';
-  show('study');
-  flashShow();
-}
+
 
 function startMCQ(modIdx){
   cMod = modIdx; cMode = 'mcq';
