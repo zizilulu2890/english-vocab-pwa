@@ -114,7 +114,7 @@ h1{font-size:22px;font-weight:700;margin-bottom:2px}
 <body>
 
 <div id="home">
-  <h1>高考英语背单词</h1>
+  <h1>高考英语背单词 <span style="font-size:10px;color:#ccc;font-weight:400">v15</span></h1>
   <p class="sub">艾宾浩斯 · 日内微循环 · 见词知意</p>
   <div class="sts">
     <div class="st" onclick="showWordList('today')" style="cursor:pointer"><div class="sv" id="sv1">0</div><div class="sl">今日已学</div></div>
@@ -900,7 +900,7 @@ function showWordList(type){
   show('done');
 }
 
-ld(); build();
+try { ld(); build(); } catch(e) { document.getElementById("mg").innerHTML = "<div style="padding:20px;color:red;text-align:center"><h3>⚠ Error</h3><pre>"+e.message+"</pre><p>v15</p></div>"; console.error(e); }
   // Init module selector
   (function(){
     let s = '<select class="mod-sel" id="modSel" onchange="switchModule()">';
