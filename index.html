@@ -140,8 +140,8 @@ h1{font-size:22px;font-weight:700;margin-bottom:2px}
     <div class="wc" id="wc">
       <div class="syl-wrap" id="we"></div>
       <div class="audio-row" id="audioRow">
-        <button class="audio-btn" onclick="speakNormal(cMode==='flash'?sess[idx]:quizWords[quizIdx])">🔊 正常发音</button>
-        <button class="audio-btn" onclick="speakSyllables(cMode==='flash'?sess[idx]:quizWords[quizIdx])">🔈 分段慢读</button>
+        <button class="audio-btn" onclick="speakNormal(cMode!=='mcq'?sess[idx]:quizWords[quizIdx])">🔊 正常发音</button>
+        <button class="audio-btn" onclick="speakSyllables(cMode!=='mcq'?sess[idx]:quizWords[quizIdx])">🔈 分段慢读</button>
       </div>
 
       <div class="hidden" id="revealBlock">
@@ -201,7 +201,7 @@ const MASTER_IVL = 3;
 
 let st = {};
 let cMod = null;      // current module index (-1 = priority)
-let cMode = 'flash';  // 'flash' | 'mcq'
+let cMode = null;  // 'learn' | 'review' | 'mcq'
 let sess = [];        // current session 20 words
 let idx = 0;          // current word index
 let sessHist = [];    // [{idx, result, accurate}] for back-nav
@@ -409,7 +409,7 @@ function autoPlay(w){
 
 // ── Mode entry ────────────────────────────────────────────
 function startLearn(modIdx){
-  cMod = modIdx; cMode = 'flash';
+  cMod = modIdx; cMode = 'learn';
   sess = pickLearn(modIdx);
   idx = 0; sessHist = [];
   if(!sess.length){
@@ -427,7 +427,7 @@ function startLearn(modIdx){
 }
 
 function startReview(modIdx){
-  cMod = modIdx; cMode = 'flash';
+  cMod = modIdx; cMode = 'review';
   sess = pickReview(modIdx);
   idx = 0; sessHist = [];
   if(!sess.length){
@@ -716,7 +716,7 @@ function revealWord(w, result){
 }
 
 function updateTopBar(w, modName){
-  document.getElementById('pf').style.width = cMode === 'flash'
+  document.getElementById('pf').style.width = cMode !== 'mcq'
     ? (idx / sess.length * 100) + '%'
     : (quizIdx / quizWords.length * 100) + '%';
 
@@ -729,7 +729,7 @@ function updateTopBar(w, modName){
     ivlLabel = ' · ✅已掌握';
   }
 
-  document.getElementById('si').innerHTML = (cMode==='flash'
+  document.getElementById('si').innerHTML = (cMode!=='mcq'
     ? '第'+(idx+1)+'/'+sess.length+'个词'
     : '📝 第'+(quizIdx+1)+'/'+quizWords.length+'题') + ' · ' + modName + ivlLabel;
 
@@ -739,7 +739,7 @@ function updateTopBar(w, modName){
 }
 
 function goBack(){
-  if(cMode === 'flash'){
+  if(cMode !== 'mcq'){
     if(sessHist.length === 0) return;
     let prev = sessHist.pop();
     idx = prev.idx;
@@ -771,8 +771,7 @@ function goBack(){
 function switchModule(){
   let newMod = parseInt(document.getElementById('modSel').value);
   if(newMod === cMod) return;
-  if(cMode === 'flash') startFlash(newMod);
-  else startMCQ(newMod);
+  if(cMode === 'learn') startLearn(newMod); else if(cMode === 'review') startReview(newMod); else startMCQ(newMod);
 }
 
 function goHome(){
