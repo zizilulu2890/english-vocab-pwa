@@ -39,11 +39,15 @@ h1{font-size:22px;font-weight:700;margin-bottom:2px}
 .si{font-size:12px;color:#999;text-align:center;margin-bottom:16px}
 .wc{background:#fff;border-radius:16px;padding:20px 20px 16px;margin-bottom:14px;min-height:240px;display:flex;flex-direction:column;align-items:center;text-align:center;border:1px solid #eee;transition:background .3s}
 
-/* Syllable word */
-.syl-wrap{display:flex;flex-wrap:wrap;justify-content:center;gap:2px;margin-bottom:8px}
+/* Word display */
+.syl-wrap{display:flex;flex-wrap:wrap;justify-content:center;gap:2px;margin-bottom:8px;min-height:50px;align-items:center}
+.word-whole{font-size:38px;font-weight:700;transition:all .25s}
+.word-whole.breaking{opacity:0;transform:scale(.85)}
 .syl-part{font-size:34px;font-weight:700;padding:2px 1px;transition:all .2s;border-radius:4px}
-.syl-part.hl{color:#ff6b35;transform:scale(1.08)}
-.syl-dot{font-size:28px;color:#ccc;padding:2px 0px}
+.syl-part.hl{color:#ff6b35;transform:scale(1.1)}
+.syl-part.pop{animation:sylPop .3s ease-out}
+@keyframes sylPop{from{opacity:0;transform:translateY(-10px) scale(.8)}to{opacity:1;transform:translateY(0) scale(1)}}
+.syl-dot{font-size:28px;color:#ccc;padding:2px 0}
 
 /* Word info after reveal */
 .rm{font-size:22px;font-weight:700;color:#1a1a1a;margin:8px 0 2px}
@@ -300,30 +304,55 @@ function stopAudio(){
   if(sylAnimTimer){ clearTimeout(sylAnimTimer); sylAnimTimer = null; }
 }
 
+function isSplit(){ return !document.getElementById('wordWhole') && document.querySelector('.syl-part'); }
+
+function renderWhole(w){
+  document.getElementById('we').innerHTML = '<span class="word-whole" id="wordWhole">'+w.e+'</span>';
+}
+
+function renderSplit(w){
+  let parts = (w.syl || w.e).split(' · ');
+  if(parts.length <= 1){ renderWhole(w); return false; }
+  let html = parts.map((p,i) =>
+    '<span class="syl-part pop" id="syl'+i+'" style="animation-delay:'+(i*0.06)+'s">'+p+'</span>'
+  ).join('<span class="syl-dot">·</span>');
+  document.getElementById('we').innerHTML = html;
+  return true;
+}
+
+function breakWord(w){
+  let whole = document.getElementById('wordWhole');
+  if(!whole) return;
+  whole.classList.add('breaking');
+  setTimeout(() => { renderSplit(w); }, 220);
+}
+
 function speakNormal(w){
   initVoice();
-  let text = w.e;
-  tts(text, 0.85);
-  hiliteSyl(-1);
+  stopAudio();
+  renderWhole(w);
+  tts(w.e, 0.85);
 }
 
 function speakSyllables(w){
   initVoice();
   stopAudio();
   let parts = (w.syl || w.e).split(' · ');
-  if(parts.length <= 1){
-    tts(w.e, 0.7);
-    return;
-  }
-  let i = 0;
-  hiliteSyl(0);
-  function next(){
-    if(i >= parts.length){ hiliteSyl(-1); return; }
-    hiliteSyl(i);
-    let u = tts(parts[i], 0.65);
-    u.onend = () => { i++; next(); };
-  }
-  next();
+  if(parts.length <= 1){ tts(w.e, 0.7); return; }
+  let wasWhole = !!document.getElementById('wordWhole');
+  if(wasWhole) breakWord(w);
+  let delay = wasWhole ? 350 : 80;
+  setTimeout(() => {
+    let i = 0;
+    hiliteSyl(0);
+    function next(){
+      if(i >= parts.length){ hiliteSyl(-1); return; }
+      hiliteSyl(i);
+      let u = tts(parts[i], 0.65);
+      u.onend = () => { i++; next(); };
+    }
+    next();
+  }, delay);
 }
 
 function hiliteSyl(idx){
@@ -337,27 +366,31 @@ function hiliteSyl(idx){
 function autoPlay(w){
   initVoice();
   stopAudio();
-  // First: normal pronunciation
+  renderWhole(w);
+  // 1. Normal pronunciation (word whole)
   let u1 = tts(w.e, 0.85);
   u1.onend = () => {
-    // Then: syllable breakdown
+    // 2. Break apart with animation, then syllable pronunciation
     setTimeout(() => {
       let parts = (w.syl || w.e).split(' · ');
       if(parts.length <= 1) return;
-      let i = 0;
-      hiliteSyl(0);
-      function next(){
-        if(i >= parts.length){ hiliteSyl(-1); return; }
-        hiliteSyl(i);
-        let u = new SpeechSynthesisUtterance(parts[i]);
-        u.lang = 'en-US'; u.rate = 0.65;
-        let vs = speechSynthesis.getVoices();
-        let ev = vs.find(v => v.lang.startsWith('en')) || vs[0];
-        if(ev) u.voice = ev;
-        u.onend = () => { i++; next(); };
-        speechSynthesis.speak(u);
-      }
-      next();
+      breakWord(w);
+      setTimeout(() => {
+        let i = 0;
+        hiliteSyl(0);
+        function next(){
+          if(i >= parts.length){ hiliteSyl(-1); return; }
+          hiliteSyl(i);
+          let u = new SpeechSynthesisUtterance(parts[i]);
+          u.lang = 'en-US'; u.rate = 0.65;
+          let vs = speechSynthesis.getVoices();
+          let ev = vs.find(v => v.lang.startsWith('en')) || vs[0];
+          if(ev) u.voice = ev;
+          u.onend = () => { i++; next(); };
+          speechSynthesis.speak(u);
+        }
+        next();
+      }, 350);
     }, 400);
   };
 }
@@ -418,17 +451,8 @@ function shw(){
   document.getElementById('quizWrap').classList.add('hidden');
   sv();
 
-  // Render word with syllable breaks
-  let sylParts = (w.syl || w.e).split(' · ');
-  let wordHTML = '';
-  if(sylParts.length > 1){
-    wordHTML = sylParts.map((p, i) =>
-      '<span class="syl-part" id="syl'+i+'">'+p+'</span>'
-    ).join('<span class="syl-dot">·</span>');
-  } else {
-    wordHTML = '<span class="syl-part" id="syl0">'+w.e+'</span>';
-  }
-  document.getElementById('we').innerHTML = wordHTML;
+  // Render word as whole initially (autoPlay will break it apart for syllables)
+  renderWhole(w);
 
   // Auto-play audio
   setTimeout(() => autoPlay(w), 300);
