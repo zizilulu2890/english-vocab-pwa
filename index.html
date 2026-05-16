@@ -29,6 +29,7 @@ h1{font-size:22px;font-weight:700;margin-bottom:2px}
 .card .btns{margin-top:8px;display:flex;gap:6px}
 .card .bts{flex:1;padding:8px 4px;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;text-align:center}
 .card .bts.flash{background:#1a1a1a;color:#fff}
+.card .bts.rev{background:#fff3e0;color:#e65100}
 .card .bts.mcq{background:#e3f2fd;color:#1565c0}
 
 /* Study screen top bar */
@@ -116,11 +117,11 @@ h1{font-size:22px;font-weight:700;margin-bottom:2px}
   <h1>高考英语背单词</h1>
   <p class="sub">艾宾浩斯 · 日内微循环 · 见词知意</p>
   <div class="sts">
-    <div class="st"><div class="sv" id="sv1">0</div><div class="sl">今日已学</div></div>
-    <div class="st"><div class="sv" id="sv2">0</div><div class="sl">已掌握</div></div>
-    <div class="st"><div class="sv" id="sv3">0</div><div class="sl">待复习</div></div>
+    <div class="st" onclick="showWordList('today')" style="cursor:pointer"><div class="sv" id="sv1">0</div><div class="sl">今日已学</div></div>
+    <div class="st" onclick="showWordList('mastered')" style="cursor:pointer"><div class="sv" id="sv2">0</div><div class="sl">已掌握</div></div>
+    <div class="st" onclick="showWordList('due')" style="cursor:pointer"><div class="sv" id="sv3">0</div><div class="sl">待复习</div></div>
   </div>
-  <p class="sub">📖 刷词 = 认识/不认识 · 📝 选择 = 选择题测验</p>
+  <p class="sub">📖 背词 = 学新词 · 📝 选择 = 选择题测验</p>
   <div class="grid" id="mg"></div>
 </div>
 
@@ -161,6 +162,9 @@ h1{font-size:22px;font-weight:700;margin-bottom:2px}
       </div>
 
       <div class="assess-row hidden" id="assessRow"></div>
+      <div style="text-align:center;margin-top:8px" class="hidden" id="nextBtn">
+        <button class="btn by" onclick="nextWord()" style="flex:none;padding:12px 40px">下一个 ➡️</button>
+      </div>
     </div>
   </div>
 
@@ -242,7 +246,53 @@ function isDue(ws){
 function isMastered(ws){ return ws.stg >= MASTER_IVL; }
 
 // ── Pick words: due first (wrong=stage0 priority), then new ──
-function pickWords(modIdx){
+function pickLearn(modIdx){
+  let pool;
+  if(modIdx === -1) pool = WORDS.filter(w => w.pr === 1);
+  else pool = WORDS.filter(w => w.mod === modIdx);
+  if(!pool.length) return [];
+  let available = pool.filter(w => {
+    let ws = st.wd[w.e.toLowerCase()];
+    return !ws || !isMastered(ws);
+  });
+  available.sort((a,b) => {
+    let wa = st.wd[a.e.toLowerCase()] || {};
+    let wb = st.wd[b.e.toLowerCase()] || {};
+    let sa = wa.stg || 0;
+    let sb = wb.stg || 0;
+    if(sa !== sb) return sa - sb;
+    let aNew = !wa.t ? 1 : 0;
+    let bNew = !wb.t ? 1 : 0;
+    if(aNew !== bNew) return bNew - aNew;
+    return (wa.t || 0) - (wb.t || 0);
+  });
+  return available.slice(0, WPS);
+}
+
+function pickReview(modIdx){
+  let pool;
+  if(modIdx === -1) pool = WORDS.filter(w => w.pr === 1);
+  else pool = WORDS.filter(w => w.mod === modIdx);
+  if(!pool.length) return [];
+  let due = pool.filter(w => {
+    let ws = st.wd[w.e.toLowerCase()];
+    return ws && isDue(ws) && !isMastered(ws);
+  });
+  let now = Date.now();
+  due.sort((a,b) => {
+    let wa = st.wd[a.e.toLowerCase()];
+    let wb = st.wd[b.e.toLowerCase()];
+    let sa = wa.stg || 0;
+    let sb = wb.stg || 0;
+    if(sa !== sb) return sa - sb;
+    let oa = now - (wa.t + EB[sa] || 0);
+    let ob = now - (wb.t + EB[sb] || 0);
+    return ob - oa;
+  });
+  return due.slice(0, WPS);
+}
+
+function pickWords
   let pool;
   if(modIdx === -1) pool = WORDS.filter(w => w.pr === 1);
   else pool = WORDS.filter(w => w.mod === modIdx);
@@ -389,7 +439,43 @@ function autoPlay(w){
 }
 
 // ── Mode entry ────────────────────────────────────────────
-function startFlash(modIdx){
+function startLearn(modIdx){
+  cMod = modIdx; cMode = 'flash';
+  sess = pickLearn(modIdx);
+  idx = 0; sessHist = [];
+  if(!sess.length){
+    document.getElementById('dm').textContent = '🎉 太棒了！';
+    document.getElementById('ds').textContent = '这个模块没有新词需要学习了！';
+    show('done'); return;
+  }
+  document.getElementById('modeTag').textContent = '背词';
+  document.getElementById('modeTag').className = 'mode-tag flash';
+  document.getElementById('modeTag').style.background = '#1a1a1a';
+  document.getElementById('modeTag').style.color = '#fff';
+  document.getElementById('wc').style.background = '#fff';
+  show('study');
+  flashShow();
+}
+
+function startReview(modIdx){
+  cMod = modIdx; cMode = 'flash';
+  sess = pickReview(modIdx);
+  idx = 0; sessHist = [];
+  if(!sess.length){
+    document.getElementById('dm').textContent = '✨ 暂无待复习';
+    document.getElementById('ds').textContent = '所有已学单词都在记忆周期中，稍后再来~';
+    show('done'); return;
+  }
+  document.getElementById('modeTag').textContent = '复习';
+  document.getElementById('modeTag').className = 'mode-tag flash';
+  document.getElementById('modeTag').style.background = '#fff3e0';
+  document.getElementById('modeTag').style.color = '#e65100';
+  document.getElementById('wc').style.background = '#fff';
+  show('study');
+  flashShow();
+}
+
+function startFlash
   cMod = modIdx; cMode = 'flash';
   sess = pickWords(modIdx);
   idx = 0; sessHist = [];
@@ -406,7 +492,7 @@ function startFlash(modIdx){
 
 function startMCQ(modIdx){
   cMod = modIdx; cMode = 'mcq';
-  let pool = pickWords(modIdx);
+  let pool = pickLearn(modIdx);
   if(!pool.length){
     document.getElementById('dm').textContent = '🎉 太棒了！';
     document.getElementById('ds').textContent = '这个模块没有需要复习的词了！';
@@ -480,41 +566,41 @@ function flashAns(result){
   }
 
   // Auto-advance after delay if no assessment
-  revealTimer = setTimeout(() => { advanceFlash(); }, 4000);
+  // Manual advance - user clicks next button
 }
 
 function flashAssess(accurate){
   if(revealTimer){ clearTimeout(revealTimer); revealTimer = null; }
   let w = sess[idx];
   let ws = gs(w.e.toLowerCase());
-
-  // If user corrects their self-assessment
   if(lastResult === 'yes' && !accurate){
-    // Said 认识 but 记错了 → reset to stage 0
     ws.stg = 0; ws.r = 0; ws.wg = (ws.wg || 0) + 1;
   }
   if(lastResult === 'no' && !accurate){
-    // Said 不认识 but 其实认识 → stage up
     if(ws.stg === 3){ ws.stg = 4; }
     else { ws.stg = Math.min((ws.stg || 0) + 1, 8); }
     ws.r++; ws.p = Math.max(ws.p || 0, ws.r);
   }
   sv();
-
-  // Save to history
   sessHist.push({idx: idx, w: w, result: lastResult, accurate: accurate});
-
-  // Show brief feedback
-  let fb = document.createElement('div');
-  fb.style.cssText = 'text-align:center;font-size:12px;color:#999;margin-top:6px';
-  fb.textContent = accurate ? '已记录 ✓' : '已修正 ✓';
-  document.getElementById('assessRow').after(fb);
   document.getElementById('assessRow').classList.add('hidden');
-
-  revealTimer = setTimeout(() => { idx++; flashShow(); }, accurate ? 600 : 1200);
+  document.getElementById('nextBtn').classList.remove('hidden');
 }
 
 function advanceFlash(){
+  if(revealTimer){ clearTimeout(revealTimer); revealTimer = null; }
+  sessHist.push({idx: idx, w: sess[idx], result: lastResult, accurate: null});
+  document.getElementById('assessRow').classList.add('hidden');
+  document.getElementById('nextBtn').classList.remove('hidden');
+}
+
+function nextWord(){
+  document.getElementById('nextBtn').classList.add('hidden');
+  idx++;
+  flashShow();
+}
+
+function advanceFlash
   // Auto-advance without assessment
   sessHist.push({idx: idx, w: sess[idx], result: lastResult, accurate: null});
   idx++; flashShow();
@@ -529,7 +615,7 @@ function flashDone(){
   document.getElementById('ds').innerHTML = '已学'+sess.length+'个词，掌握'+mastered+'个<br>可选择其他模块或切换模式继续';
   document.getElementById('doneBtns').innerHTML =
     '<button class="btn bk bt2" onclick="goHome()">🏠 首页</button>' +
-    '<button class="btn by bt2" onclick="startFlash(cMod)">🔄 继续刷词</button>' +
+    '<button class="btn by bt2" onclick="startLearn(cMod)">🔄 继续刷词</button>' +
     '<button class="btn bn bt2" onclick="startMCQ(cMod)" style="background:#e3f2fd;color:#1565c0">📝 选择模式</button>';
   show('done');
 }
@@ -632,7 +718,7 @@ function mcqResults(){
   document.getElementById('doneBtns').innerHTML =
     '<button class="btn bk bt2" onclick="goHome()">🏠 首页</button>' +
     '<button class="btn by bt2" onclick="startMCQ(cMod)">🔄 再来一组</button>' +
-    '<button class="btn bn bt2" onclick="startFlash(cMod)" style="background:#1a1a1a;color:#fff">📖 刷词模式</button>';
+    '<button class="btn bn bt2" onclick="startLearn(cMod)" style="background:#1a1a1a;color:#fff">📖 刷词模式</button>';
   show('done');
 }
 
@@ -783,6 +869,8 @@ function upd(){
       if(dueCount > 0) txt += ' · <span style="color:#e65100">'+dueCount+' 待复习</span>';
       ct.innerHTML = txt;
     }
+    let revBtn = c.querySelector('.rev');
+    if(revBtn) revBtn.textContent = dueCount > 0 ? 'f504 复习('+dueCount+')' : 'f504 复习';
   });
 }
 
@@ -805,7 +893,7 @@ function build(){
   h += '<div class="card pri" data-mod="-1">';
   h += '<div class="ic">⭐</div><div class="nm">高考重点词</div><div class="ct">0/'+pri.length+' 掌握</div>';
   h += '<div class="pg"><div class="pgb" style="width:0%"></div></div>';
-  h += '<div class="btns"><button class="bts flash" onclick="event.stopPropagation();startFlash(-1)">📖 刷词</button><button class="bts mcq" onclick="event.stopPropagation();startMCQ(-1)">📝 选择</button></div>';
+  h += '<div class="btns"><button class="bts flash" onclick="event.stopPropagation();startLearn(-1)">📖 背词</button><button class="bts rev" onclick="event.stopPropagation();startReview(-1)">🔄 复习</button><button class="bts mcq" onclick="event.stopPropagation();startMCQ(-1)">📝 选择</button></div>';
   h += '</div>';
 
   MODULES.forEach((m,i) => {
@@ -814,7 +902,7 @@ function build(){
     h += '<div class="card" data-mod="'+i+'">';
     h += '<div class="ic">'+m.icon+'</div><div class="nm">'+m.name+'</div><div class="ct">0/'+pool.length+' 掌握</div>';
     h += '<div class="pg"><div class="pgb" style="width:0%"></div></div>';
-    h += '<div class="btns"><button class="bts flash" onclick="event.stopPropagation();startFlash('+i+')">📖 刷词</button><button class="bts mcq" onclick="event.stopPropagation();startMCQ('+i+')">📝 选择</button></div>';
+    h += '<div class="btns"><button class="bts flash" onclick="event.stopPropagation();startLearn('+i+')">📖 背词</button><button class="bts rev" onclick="event.stopPropagation();startReview('+i+')">🔄 复习</button><button class="bts mcq" onclick="event.stopPropagation();startMCQ('+i+')">📝 选择</button></div>';
     h += '</div>';
   });
   g.innerHTML = h;
@@ -824,6 +912,45 @@ function build(){
 // ── Init ─────────────────────────────────────────────────
 document.getElementById('backBtn').addEventListener('click', goHome);
 document.getElementById('prevBtn').addEventListener('click', goBack);
+function showWordList(type){
+  let list = [];
+  for(let k in st.wd){
+    let ws = st.wd[k];
+    let w = WORDS.find(x => x.e.toLowerCase() === k);
+    if(!w) continue;
+    if(type === 'today' && ws.t){
+      let today = new Date().toDateString();
+      if(new Date(ws.t).toDateString() === today) list.push({w, ws});
+    } else if(type === 'mastered' && isMastered(ws)){
+      list.push({w, ws});
+    } else if(type === 'due' && isDue(ws) && !isMastered(ws)){
+      list.push({w, ws});
+    }
+  }
+  if(!list.length){
+    document.getElementById('dm').textContent = '📭 暂无数据';
+    document.getElementById('ds').textContent = '';
+    document.getElementById('doneBtns').innerHTML = '<button class="btn bk bt2" onclick="goHome()">返回首页</button>';
+    show('done'); return;
+  }
+  list.sort((a,b) => (a.ws.stg||0) - (b.ws.stg||0));
+  let html = '<div style="text-align:left;max-height:60vh;overflow-y:auto;width:100%">';
+  list.forEach(r => {
+    let w = r.w, ws = r.ws;
+    let stgLabel = ws.stg >= MASTER_IVL ? '✅' : '⏳'+EB_LABEL[ws.stg];
+    html += '<div class="qc"><div class="qce">'+w.e+' <span style="font-size:11px;color:#999">'+stgLabel+'</span></div>';
+    html += '<div class="qcc">'+w.c.split('；')[0]+'</div>';
+    if(w.tip) html += '<div class="qct">💡 '+w.tip+'</div>';
+    html += '</div>';
+  });
+  html += '</div>';
+  let title = type==='today' ? '📅 今日已学 ('+list.length+'词)' : type==='mastered' ? '🏆 已掌握 ('+list.length+'词)' : '🔄 待复习 ('+list.length+'词)';
+  document.getElementById('dm').textContent = title;
+  document.getElementById('ds').innerHTML = html;
+  document.getElementById('doneBtns').innerHTML = '<button class="btn bk bt2" onclick="goHome()">返回首页</button>';
+  show('done');
+}
+
 ld(); build();
   // Init module selector
   (function(){
