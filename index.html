@@ -114,7 +114,7 @@ h1{font-size:22px;font-weight:700;margin-bottom:2px}
 <body>
 
 <div id="home">
-  <h1>高考英语背单词 <span style="font-size:10px;color:#ccc;font-weight:400">v15</span></h1>
+  <h1>高考英语背单词 <span style="font-size:10px;color:#ccc;font-weight:400">v18</span></h1>
   <p class="sub">艾宾浩斯 · 日内微循环 · 见词知意</p>
   <div class="sts">
     <div class="st" onclick="showWordList('today')" style="cursor:pointer"><div class="sv" id="sv1">0</div><div class="sl">今日已学</div></div>
@@ -565,7 +565,7 @@ function flashDone(){
   document.getElementById('ds').innerHTML = '已学'+sess.length+'个词，掌握'+mastered+'个<br>可选择其他模块或切换模式继续';
   document.getElementById('doneBtns').innerHTML =
     '<button class="btn bk bt2" onclick="goHome()">🏠 首页</button>' +
-    '<button class="btn by bt2" onclick="startLearn(cMod)">🔄 继续刷词</button>' +
+    '<button class="btn by bt2" onclick="startLearn(cMod)">↻ 继续刷词</button>' +
     '<button class="btn bn bt2" onclick="startMCQ(cMod)" style="background:#e3f2fd;color:#1565c0">📝 选择模式</button>';
   show('done');
 }
@@ -667,7 +667,7 @@ function mcqResults(){
   document.getElementById('ds').innerHTML = detailHTML;
   document.getElementById('doneBtns').innerHTML =
     '<button class="btn bk bt2" onclick="goHome()">🏠 首页</button>' +
-    '<button class="btn by bt2" onclick="startMCQ(cMod)">🔄 再来一组</button>' +
+    '<button class="btn by bt2" onclick="startMCQ(cMod)">↻ 再来一组</button>' +
     '<button class="btn bn bt2" onclick="startLearn(cMod)" style="background:#1a1a1a;color:#fff">📖 刷词模式</button>';
   show('done');
 }
@@ -724,7 +724,7 @@ function updateTopBar(w, modName){
   let stg = ws.stg || 0;
   let ivlLabel = '';
   if(ws.t && stg < MASTER_IVL){
-    ivlLabel = ' · 🔄' + EB_LABEL[stg];
+    ivlLabel = ' · ↻' + EB_LABEL[stg];
   } else if(ws.t && stg >= MASTER_IVL){
     ivlLabel = ' · ✅已掌握';
   }
@@ -842,7 +842,7 @@ function build(){
   h += '<div class="card pri" data-mod="-1">';
   h += '<div class="ic">⭐</div><div class="nm">高考重点词</div><div class="ct">0/'+pri.length+' 掌握</div>';
   h += '<div class="pg"><div class="pgb" style="width:0%"></div></div>';
-  h += '<div class="btns"><button class="bts flash" onclick="event.stopPropagation();startLearn(-1)">📖 背词</button><button class="bts rev" onclick="event.stopPropagation();startReview(-1)">🔄 复习</button><button class="bts mcq" onclick="event.stopPropagation();startMCQ(-1)">📝 选择</button></div>';
+  h += '<div class="btns"><button class="bts flash" onclick="event.stopPropagation();startLearn(-1)">📖 背词</button><button class="bts rev" onclick="event.stopPropagation();startReview(-1)">↻ 复习</button><button class="bts mcq" onclick="event.stopPropagation();startMCQ(-1)">📝 选择</button></div>';
   h += '</div>';
 
   MODULES.forEach((m,i) => {
@@ -851,7 +851,7 @@ function build(){
     h += '<div class="card" data-mod="'+i+'">';
     h += '<div class="ic">'+m.icon+'</div><div class="nm">'+m.name+'</div><div class="ct">0/'+pool.length+' 掌握</div>';
     h += '<div class="pg"><div class="pgb" style="width:0%"></div></div>';
-    h += '<div class="btns"><button class="bts flash" onclick="event.stopPropagation();startLearn('+i+')">📖 背词</button><button class="bts rev" onclick="event.stopPropagation();startReview('+i+')">🔄 复习</button><button class="bts mcq" onclick="event.stopPropagation();startMCQ('+i+')">📝 选择</button></div>';
+    h += '<div class="btns"><button class="bts flash" onclick="event.stopPropagation();startLearn('+i+')">📖 背词</button><button class="bts rev" onclick="event.stopPropagation();startReview('+i+')">↻ 复习</button><button class="bts mcq" onclick="event.stopPropagation();startMCQ('+i+')">📝 选择</button></div>';
     h += '</div>';
   });
   g.innerHTML = h;
@@ -893,7 +893,7 @@ function showWordList(type){
     html += '</div>';
   });
   html += '</div>';
-  let title = type==='today' ? '📅 今日已学 ('+list.length+'词)' : type==='mastered' ? '🏆 已掌握 ('+list.length+'词)' : '🔄 待复习 ('+list.length+'词)';
+  let title = type==='today' ? '📅 今日已学 ('+list.length+'词)' : type==='mastered' ? '🏆 已掌握 ('+list.length+'词)' : '↻ 待复习 ('+list.length+'词)';
   document.getElementById('dm').textContent = title;
   document.getElementById('ds').innerHTML = html;
   document.getElementById('doneBtns').innerHTML = '<button class="btn bk bt2" onclick="goHome()">返回首页</button>';
