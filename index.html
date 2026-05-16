@@ -251,16 +251,20 @@ function pickLearn(modIdx){
   if(modIdx === -1) pool = WORDS.filter(w => w.pr === 1);
   else pool = WORDS.filter(w => w.mod === modIdx);
   if(!pool.length) return [];
-  // ONLY truly new words (never studied)
+  // New words + wrong/reset words (stage 0) that need re-learning
   let available = pool.filter(w => {
     let ws = st.wd[w.e.toLowerCase()];
-    return !ws || !ws.t;
+    return !ws || !ws.t || (ws.stg === 0 && ws.t);
   });
-  // Randomize to avoid fixed order
-  for(let i = available.length-1; i>0; i--){
-    let j = Math.floor(Math.random()*(i+1));
-    [available[i], available[j]] = [available[j], available[i]];
-  }
+  // Sort: never-studied first, then stage 0
+  available.sort((a,b) => {
+    let wa = st.wd[a.e.toLowerCase()] || {};
+    let wb = st.wd[b.e.toLowerCase()] || {};
+    let aNew = !wa.t ? 0 : 1; // never-studied = 0 (first)
+    let bNew = !wb.t ? 0 : 1;
+    if(aNew !== bNew) return aNew - bNew;
+    return (wa.t || 0) - (wb.t || 0); // older first
+  });
   return available.slice(0, WPS);
 }
 
@@ -269,9 +273,10 @@ function pickReview(modIdx){
   if(modIdx === -1) pool = WORDS.filter(w => w.pr === 1);
   else pool = WORDS.filter(w => w.mod === modIdx);
   if(!pool.length) return [];
+  // Only stage 1+ words that are due (NOT stage 0 - those go to learn)
   let due = pool.filter(w => {
     let ws = st.wd[w.e.toLowerCase()];
-    return ws && isDue(ws) && !isMastered(ws);
+    return ws && ws.t && (ws.stg || 0) >= 1 && isDue(ws) && !isMastered(ws);
   });
   let now = Date.now();
   due.sort((a,b) => {
