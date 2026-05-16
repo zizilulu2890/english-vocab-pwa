@@ -600,12 +600,6 @@ function nextWord(){
   flashShow();
 }
 
-function advanceFlash
-  // Auto-advance without assessment
-  sessHist.push({idx: idx, w: sess[idx], result: lastResult, accurate: null});
-  idx++; flashShow();
-}
-
 function flashDone(){
   stopAudio();
   document.getElementById('flashBlock').classList.add('hidden');
