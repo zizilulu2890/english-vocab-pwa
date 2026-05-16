@@ -301,7 +301,7 @@ function initVoice(){
   speechSynthesis.getVoices();
   voiceReady = true;
 }
-speechSynthesis.onvoiceschanged = () => { voiceReady = true; };
+if(typeof speechSynthesis !== 'undefined') speechSynthesis.onvoiceschanged = () => { voiceReady = true; };
 
 function tts(text, rate=1){
   stopAudio();
@@ -900,7 +900,7 @@ function showWordList(type){
   show('done');
 }
 
-try { ld(); build(); } catch(e) { document.getElementById("mg").innerHTML = "<div style="padding:20px;color:red;text-align:center"><h3>⚠ Error</h3><pre>"+e.message+"</pre><p>v15</p></div>"; console.error(e); }
+ld(); build();
   // Init module selector
   (function(){
     let s = '<select class="mod-sel" id="modSel" onchange="switchModule()">';
