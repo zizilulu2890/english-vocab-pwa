@@ -121,7 +121,6 @@ h1{font-size:22px;font-weight:700;margin-bottom:2px}
     <div class="st" onclick="showWordList('mastered')" style="cursor:pointer"><div class="sv" id="sv2">0</div><div class="sl">已掌握</div></div>
     <div class="st" onclick="showWordList('due')" style="cursor:pointer"><div class="sv" id="sv3">0</div><div class="sl">待复习</div></div>
   </div>
-  </div>
   <p class="sub">📖 背词 = 学新词 · 📝 选择 = 选择题测验</p>
   <div class="grid" id="mg"></div>
 </div>
@@ -582,6 +581,17 @@ function startGroupTest(){
 // ── MCQ mode ──────────────────────────────────────────────
 
 // ── Semantic distractors for MCQ ─────────────────────────
+// Check if two Chinese meanings are too similar (share all chars or one contains the other)
+function isSimilarChinese(a, b){
+  if(a === b) return true;
+  if(a.length <= 1 || b.length <= 1) return a === b;
+  if(a.includes(b) || b.includes(a)) return true;
+  let shared = 0;
+  for(let ch of a){ if(b.includes(ch)) shared++; }
+  let maxLen = Math.max(a.length, b.length);
+  return shared / maxLen > 0.7;
+}
+
 function findSemanticDistractors(target, count){
   let tc = target.c.split('；')[0].split('；')[0];
   let scored = WORDS.filter(x => x.e.toLowerCase() !== target.e.toLowerCase()).map(x => {
@@ -619,7 +629,7 @@ function mcqShow(){
     for(let x of candidates){
       if(wrongs.length >= 3) break;
       let c = x.c.split('；')[0].split('；')[0];
-      if(c && c !== correct && !wrongs.includes(c)) wrongs.push(c);
+      if(c && c !== correct && !wrongs.includes(c) && !isSimilarChinese(c, correct)) wrongs.push(c);
     }
   }
   if(wrongs.length < 3){
