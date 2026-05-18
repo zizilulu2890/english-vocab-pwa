@@ -198,7 +198,7 @@ const WPS = 20;
 // Ebbinghaus: stage 0:3min 1:20min 2:2h 3:tonight 4:1d 5:2d 6:4d 7:7d 8:15d
 const EB = [180000, 1200000, 7200000, 0, 86400000, 172800000, 345600000, 604800000, 1296000000];
 const EB_LABEL = ['3分钟后','20分钟后','2小时后','今晚复习','1天后','2天后','4天后','7天后','15天后'];
-const MASTER_IVL = 3;
+const MASTER_IVL = 9;
 
 let st = {};
 let cMod = null;      // current module index (-1 = priority)
@@ -502,7 +502,7 @@ function flashAns(result){
 
   if(result === 'yes'){
     if(ws.stg === 3){ ws.stg = 4; }
-    else { ws.stg = Math.min((ws.stg || 0) + 1, 8); }
+    else { ws.stg = Math.min((ws.stg || 0) + 1, 9); }
     ws.r++; ws.p = Math.max(ws.p || 0, ws.r);
   } else {
     ws.stg = 0;
@@ -538,7 +538,7 @@ function flashAssess(accurate){
   }
   if(lastResult === 'no' && !accurate){
     if(ws.stg === 3){ ws.stg = 4; }
-    else { ws.stg = Math.min((ws.stg || 0) + 1, 8); }
+    else { ws.stg = Math.min((ws.stg || 0) + 1, 9); }
     ws.r++; ws.p = Math.max(ws.p || 0, ws.r);
   }
   sv();
@@ -677,7 +677,7 @@ function mcqAns(i, ok, btn){
     fb.style.color = '#2e7d32';
     quizCorrect++;
     if(ws.stg === 3){ ws.stg = 4; }
-    else { ws.stg = Math.min((ws.stg || 0) + 1, 8); }
+    else { ws.stg = Math.min((ws.stg || 0) + 1, 9); }
     ws.r++; ws.p = Math.max(ws.p || 0, ws.r);
   } else {
     fb.textContent = '❌ 正确答案：' + w.c.split('；')[0].split('；')[0];
@@ -776,7 +776,6 @@ function revealWord(w, result){
 
   let card = document.getElementById('wc');
   card.style.background = result === 'yes' ? '#f1f8e9' : '#fce4ec';
-  st.tc++;
 }
 
 function updateTopBar(w, modName){
@@ -853,15 +852,17 @@ function tst(m){ return document.getElementById(m); }
 
 // ── Home stats ────────────────────────────────────────────
 function upd(){
-  let mastered = 0, due = 0;
+  let mastered = 0, due = 0, todayCount = 0;
+  let todayStr = new Date().toDateString();
   for(let k in st.wd){
     let ws = st.wd[k];
     if(!WORDS.find(w => w.e.toLowerCase() === k)) continue;
+    if(ws.t && new Date(ws.t).toDateString() === todayStr) todayCount++;
     if(isMastered(ws)) mastered++;
     else if(isDue(ws)) due++;
   }
 
-  tst('sv1').textContent = st.tc;
+  tst('sv1').textContent = todayCount;
   tst('sv2').textContent = mastered;
   tst('sv3').textContent = due;
   tst('sv2').textContent = mastered;
